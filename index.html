@@ -1,73 +1,768 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Face Filter - Mis 15</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; }
-    body { overflow: hidden; background: black; }
-    canvas { display: block; width: 100vw; height: 100vh; }
-    #info { 
-      position: fixed; 
-      bottom: 20px; 
-      left: 50%; 
-      transform: translateX(-50%); 
-      background: rgba(255,255,255,0.9); 
-      padding: 15px 30px; 
-      border-radius: 25px; 
-      font-size: 14px;
-      z-index: 100;
-    }
-  </style>
-</head>
-<body>
-  anvas id="canvas"></canvas>
-  <div id="info">Cargando...</div>
-
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face.prod.js"></script>
-  <script>
-    (async function() {
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
-      const info = document.getElementById('info');
-
-      try {
-        const mindarFace = new window.MINDAR.FACE.MindARFace();
-        await mindarFace.setupCamera();
-        
-        canvas.width = mindarFace.width;
-        canvas.height = mindarFace.height;
-        
-        await mindarFace.start();
-        info.innerHTML = '✓ Filtro activo<br>Haz Screenshot para guardar';
-
-        function render() {
-          const imageData = mindarFace.getVideoData();
-          ctx.putImageData(imageData, 0, 0);
-
-          const faces = mindarFace.estimateFaces();
-          
-          // Dibuja un círculo verde alrededor de la cara
-          if (faces.length > 0) {
-            const face = faces[0];
-            ctx.strokeStyle = '#00FF00';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(face.position[0], face.position[1], 80, 0, 2 * Math.PI);
-            ctx.stroke();
-          }
-
-          requestAnimationFrame(render);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>XV Clara - Filtros AR ✨</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        render();
-      } catch (err) {
-        info.innerHTML = '❌ Error: ' + err.message;
-        console.error(err);
-      }
-    })();
-  </script>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #videoElement {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Efecto espejo */
+        }
+
+        #canvasElement {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1); /* Efecto espejo */
+        }
+
+        /* Header con branding */
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        #header h1 {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 5px;
+        }
+
+        #header p {
+            color: #fff;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Selector de filtros - Estilo Instagram Stories */
+        #filterSelector {
+            position: absolute;
+            bottom: 180px;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 0 20px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        #filterSelector::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-option {
+            display: inline-block;
+            text-align: center;
+            margin: 0 10px;
+            cursor: pointer;
+        }
+
+        .filter-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 8px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .filter-option.active .filter-icon {
+            border-color: #FFD700;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .filter-name {
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Botones inferiores */
+        #controls {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            padding: 0 20px;
+        }
+
+        #captureBtn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid #fff;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #captureBtn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        /* Flash para captura */
+        .flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+            z-index: 200;
+        }
+
+        .flash.active {
+            opacity: 0.9;
+        }
+
+        /* Status */
+        #status {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Loading screen */
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            transition: opacity 0.5s;
+        }
+
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loading p {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Modal de compartir */
+        #shareModal {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px 20px 0 0;
+            padding: 30px;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 250;
+        }
+
+        #shareModal.show {
+            transform: translateY(0);
+        }
+
+        #shareModal h3 {
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #shareModal img {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .share-btn {
+            padding: 15px 25px;
+            border-radius: 25px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .share-btn:active {
+            transform: scale(0.95);
+        }
+
+        .share-btn.instagram {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            color: white;
+        }
+
+        .share-btn.download {
+            background: #fff;
+            color: #000;
+        }
+
+        .close-modal {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+        <p>Cargando filtros...</p>
+    </div>
+
+    <div id="container">
+        <video id="videoElement" autoplay playsinline></video>
+        <canvas id="canvasElement"></canvas>
+        
+        <div id="header">
+            <h1>XV de Clara ✨</h1>
+            <p>Elegí tu filtro favorito</p>
+        </div>
+
+        <div id="status" style="display: none;"></div>
+        <div class="flash" id="flash"></div>
+        
+        <!-- Selector de filtros horizontal -->
+        <div id="filterSelector">
+            <div class="filter-option active" data-filter="none">
+                <div class="filter-icon">✨</div>
+                <div class="filter-name">Original</div>
+            </div>
+            <div class="filter-option" data-filter="lips-red">
+                <div class="filter-icon">💋</div>
+                <div class="filter-name">Labios</div>
+            </div>
+            <div class="filter-option" data-filter="lips-glitter">
+                <div class="filter-icon">💄</div>
+                <div class="filter-name">Glitter</div>
+            </div>
+            <div class="filter-option" data-filter="crown">
+                <div class="filter-icon">👑</div>
+                <div class="filter-name">Corona</div>
+            </div>
+            <div class="filter-option" data-filter="glasses">
+                <div class="filter-icon">😎</div>
+                <div class="filter-name">Lentes</div>
+            </div>
+            <div class="filter-option" data-filter="butterfly">
+                <div class="filter-icon">🦋</div>
+                <div class="filter-name">Mariposa</div>
+            </div>
+            <div class="filter-option" data-filter="heart">
+                <div class="filter-icon">💕</div>
+                <div class="filter-name">Corazón</div>
+            </div>
+        </div>
+
+        <!-- Controles inferiores -->
+        <div id="controls">
+            <div class="control-btn" id="switchCamera" title="Cambiar cámara">🔄</div>
+            <div id="captureBtn"></div>
+            <div class="control-btn" id="galleryBtn" title="Galería">🖼️</div>
+        </div>
+    </div>
+
+    <!-- Modal de compartir -->
+    <div id="shareModal">
+        <h3>¡Foto capturada! 📸</h3>
+        <img id="capturedImage" src="" alt="Foto capturada">
+        <div class="share-buttons">
+            <button class="share-btn instagram" id="shareInstagram">📱 Instagram</button>
+            <button class="share-btn download" id="downloadBtn">⬇️ Descargar</button>
+        </div>
+        <button class="close-modal" id="closeModal">Cerrar</button>
+    </div>
+
+    <!-- MediaPipe Face Mesh -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+
+    <script>
+        const videoElement = document.getElementById('videoElement');
+        const canvasElement = document.getElementById('canvasElement');
+        const canvasCtx = canvasElement.getContext('2d');
+        const loading = document.getElementById('loading');
+        const shareModal = document.getElementById('shareModal');
+        const capturedImage = document.getElementById('capturedImage');
+        const flash = document.getElementById('flash');
+
+        let currentFilter = 'none';
+        let faceLandmarks = null;
+        let currentCamera = 'user'; // 'user' = frontal, 'environment' = trasera
+        let camera = null;
+
+        // Configurar canvas responsive
+        function setupCanvas() {
+            canvasElement.width = window.innerWidth;
+            canvasElement.height = window.innerHeight;
+        }
+
+        setupCanvas();
+        window.addEventListener('resize', setupCanvas);
+
+        // MediaPipe Face Mesh
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+            }
+        });
+
+        faceMesh.setOptions({
+            maxNumFaces: 3, // Detectar hasta 3 caras para fotos grupales
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults(onResults);
+
+        // Landmarks para diferentes partes del rostro
+        const FACE_PARTS = {
+            lips: {
+                upper: [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291],
+                lower: [146, 91, 181, 84, 17, 314, 405, 321, 375, 291]
+            },
+            forehead: [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288],
+            leftEye: [33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7],
+            rightEye: [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382]
+        };
+
+        // Procesar resultados
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Dibujar video
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                // Aplicar filtro a todas las caras detectadas
+                results.multiFaceLandmarks.forEach(landmarks => {
+                    applyFilter(landmarks);
+                });
+            }
+
+            canvasCtx.restore();
+        }
+
+        // Aplicar filtro
+        function applyFilter(landmarks) {
+            switch(currentFilter) {
+                case 'lips-red':
+                    drawLips(landmarks, '#DC143C', 0.6);
+                    break;
+                case 'lips-glitter':
+                    drawLipsGlitter(landmarks);
+                    break;
+                case 'crown':
+                    drawCrown(landmarks);
+                    break;
+                case 'glasses':
+                    drawGlasses(landmarks);
+                    break;
+                case 'butterfly':
+                    drawButterfly(landmarks);
+                    break;
+                case 'heart':
+                    drawHeartCheeks(landmarks);
+                    break;
+            }
+        }
+
+        // Dibujar labios
+        function drawLips(landmarks, color, opacity) {
+            canvasCtx.globalAlpha = opacity;
+            drawLipPath(landmarks, FACE_PARTS.lips.upper, color);
+            drawLipPath(landmarks, FACE_PARTS.lips.lower, color);
+            canvasCtx.globalAlpha = 1.0;
+        }
+
+        function drawLipPath(landmarks, indices, color) {
+            canvasCtx.beginPath();
+            indices.forEach((idx, i) => {
+                const point = landmarks[idx];
+                const x = point.x * canvasElement.width;
+                const y = point.y * canvasElement.height;
+                i === 0 ? canvasCtx.moveTo(x, y) : canvasCtx.lineTo(x, y);
+            });
+            canvasCtx.closePath();
+            canvasCtx.fillStyle = color;
+            canvasCtx.fill();
+        }
+
+        // Labios con glitter
+        function drawLipsGlitter(landmarks) {
+            drawLips(landmarks, '#FF1493', 0.5);
+            
+            const lipPoints = [...FACE_PARTS.lips.upper, ...FACE_PARTS.lips.lower];
+            lipPoints.forEach(idx => {
+                if (Math.random() > 0.6) {
+                    const point = landmarks[idx];
+                    const x = point.x * canvasElement.width;
+                    const y = point.y * canvasElement.height;
+                    canvasCtx.fillStyle = Math.random() > 0.5 ? '#FFD700' : '#FFF';
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(x + (Math.random() - 0.5) * 5, y + (Math.random() - 0.5) * 5, 2, 0, Math.PI * 2);
+                    canvasCtx.fill();
+                }
+            });
+        }
+
+        // Corona
+        function drawCrown(landmarks) {
+            const forehead = landmarks[10];
+            const leftSide = landmarks[234];
+            const rightSide = landmarks[454];
+            
+            const centerX = forehead.x * canvasElement.width;
+            const centerY = forehead.y * canvasElement.height - 80;
+            const width = Math.abs(rightSide.x - leftSide.x) * canvasElement.width * 0.8;
+            
+            // Corona dorada
+            canvasCtx.fillStyle = '#FFD700';
+            canvasCtx.strokeStyle = '#FFA500';
+            canvasCtx.lineWidth = 3;
+            
+            // Puntas de la corona
+            canvasCtx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI / 4) * i - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * width / 2;
+                const y = centerY + Math.sin(angle) * 40;
+                i === 0 ? canvasCtx.moveTo(x, y + 20) : canvasCtx.lineTo(x, y);
+                canvasCtx.lineTo(x, y + 20);
+            }
+            canvasCtx.closePath();
+            canvasCtx.fill();
+            canvasCtx.stroke();
+            
+            // Joyas
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI / 4) * i - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * width / 2;
+                const y = centerY + Math.sin(angle) * 40;
+                canvasCtx.fillStyle = i % 2 === 0 ? '#FF0080' : '#00BFFF';
+                canvasCtx.beginPath();
+                canvasCtx.arc(x, y, 5, 0, Math.PI * 2);
+                canvasCtx.fill();
+            }
+        }
+
+        // Lentes de sol
+        function drawGlasses(landmarks) {
+            const leftEye = landmarks[159];
+            const rightEye = landmarks[386];
+            const nose = landmarks[168];
+            
+            const eyeDistance = Math.abs(rightEye.x - leftEye.x) * canvasElement.width;
+            const lensRadius = eyeDistance * 0.25;
+            
+            // Lente izquierdo
+            drawLens(leftEye, lensRadius);
+            // Lente derecho
+            drawLens(rightEye, lensRadius);
+            
+            // Puente
+            canvasCtx.strokeStyle = '#000';
+            canvasCtx.lineWidth = 4;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(leftEye.x * canvasElement.width + lensRadius, leftEye.y * canvasElement.height);
+            canvasCtx.lineTo(rightEye.x * canvasElement.width - lensRadius, rightEye.y * canvasElement.height);
+            canvasCtx.stroke();
+        }
+
+        function drawLens(eye, radius) {
+            const x = eye.x * canvasElement.width;
+            const y = eye.y * canvasElement.height;
+            
+            // Lente oscuro
+            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            canvasCtx.beginPath();
+            canvasCtx.arc(x, y, radius, 0, Math.PI * 2);
+            canvasCtx.fill();
+            
+            // Marco
+            canvasCtx.strokeStyle = '#000';
+            canvasCtx.lineWidth = 4;
+            canvasCtx.stroke();
+            
+            // Reflejo
+            canvasCtx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            canvasCtx.beginPath();
+            canvasCtx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
+            canvasCtx.fill();
+        }
+
+        // Mariposa
+        function drawButterfly(landmarks) {
+            const nose = landmarks[4];
+            const x = nose.x * canvasElement.width;
+            const y = nose.y * canvasElement.height - 100;
+            
+            canvasCtx.save();
+            canvasCtx.translate(x, y);
+            
+            // Alas
+            const gradient = canvasCtx.createLinearGradient(-50, 0, 50, 0);
+            gradient.addColorStop(0, '#FF1493');
+            gradient.addColorStop(0.5, '#9400D3');
+            gradient.addColorStop(1, '#FF1493');
+            
+            canvasCtx.fillStyle = gradient;
+            
+            // Ala izquierda
+            canvasCtx.beginPath();
+            canvasCtx.ellipse(-30, 0, 35, 45, -Math.PI / 6, 0, Math.PI * 2);
+            canvasCtx.fill();
+            
+            // Ala derecha
+            canvasCtx.beginPath();
+            canvasCtx.ellipse(30, 0, 35, 45, Math.PI / 6, 0, Math.PI * 2);
+            canvasCtx.fill();
+            
+            // Cuerpo
+            canvasCtx.fillStyle = '#000';
+            canvasCtx.fillRect(-3, -20, 6, 40);
+            
+            // Antenas
+            canvasCtx.strokeStyle = '#000';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, -20);
+            canvasCtx.quadraticCurveTo(-10, -35, -15, -40);
+            canvasCtx.moveTo(0, -20);
+            canvasCtx.quadraticCurveTo(10, -35, 15, -40);
+            canvasCtx.stroke();
+            
+            canvasCtx.restore();
+        }
+
+        // Corazones en mejillas
+        function drawHeartCheeks(landmarks) {
+            const leftCheek = landmarks[50];
+            const rightCheek = landmarks[280];
+            
+            drawHeart(leftCheek.x * canvasElement.width, leftCheek.y * canvasElement.height, 30);
+            drawHeart(rightCheek.x * canvasElement.width, rightCheek.y * canvasElement.height, 30);
+        }
+
+        function drawHeart(x, y, size) {
+            canvasCtx.save();
+            canvasCtx.translate(x, y);
+            canvasCtx.fillStyle = '#FF69B4';
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, size / 4);
+            canvasCtx.bezierCurveTo(-size / 2, -size / 4, -size, size / 8, 0, size);
+            canvasCtx.bezierCurveTo(size, size / 8, size / 2, -size / 4, 0, size / 4);
+            canvasCtx.fill();
+            canvasCtx.restore();
+        }
+
+        // Selector de filtros
+        document.querySelectorAll('.filter-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                currentFilter = option.dataset.filter;
+            });
+        });
+
+        // Capturar foto
+        document.getElementById('captureBtn').addEventListener('click', () => {
+            flash.classList.add('active');
+            setTimeout(() => flash.classList.remove('active'), 100);
+            
+            const imageData = canvasElement.toDataURL('image/png');
+            capturedImage.src = imageData;
+            shareModal.classList.add('show');
+        });
+
+        // Compartir en Instagram
+        document.getElementById('shareInstagram').addEventListener('click', () => {
+            // En mobile, intentar abrir Instagram con la foto
+            if (navigator.share) {
+                canvasElement.toBlob(blob => {
+                    const file = new File([blob], 'xv-clara.png', { type: 'image/png' });
+                    navigator.share({
+                        files: [file],
+                        title: 'XV de Clara',
+                        text: '¡Mirá mi foto del XV de Clara! ✨'
+                    }).catch(err => console.log('Error sharing:', err));
+                });
+            } else {
+                alert('Descargá la foto y compartila desde tu galería 📱');
+            }
+        });
+
+        // Descargar foto
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `XV-Clara-${Date.now()}.png`;
+            link.href = capturedImage.src;
+            link.click();
+        });
+
+        // Cerrar modal
+        document.getElementById('closeModal').addEventListener('click', () => {
+            shareModal.classList.remove('show');
+        });
+
+        // Cambiar cámara (frontal/trasera)
+        document.getElementById('switchCamera').addEventListener('click', async () => {
+            currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+            if (camera) {
+                camera.stop();
+            }
+            await startCamera();
+        });
+
+        // Iniciar cámara
+        async function startCamera() {
+            camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await faceMesh.send({image: videoElement});
+                },
+                width: 1280,
+                height: 720,
+                facingMode: currentCamera
+            });
+
+            try {
+                await camera.start();
+                loading.classList.add('hidden');
+            } catch (err) {
+                console.error('Error starting camera:', err);
+                alert('No se pudo acceder a la cámara. Por favor, permitir acceso.');
+            }
+        }
+
+        // Iniciar aplicación
+        startCamera();
+    </script>
 </body>
 </html>
