@@ -352,25 +352,13 @@
                 <div class="filter-icon">✨</div>
                 <div class="filter-name">Original</div>
             </div>
-            <div class="filter-option" data-filter="lips-red">
-                <div class="filter-icon">💋</div>
+            <div class="filter-option" data-filter="labios-custom">
+                <div class="filter-icon">👄</div>
                 <div class="filter-name">Labios</div>
             </div>
             <div class="filter-option" data-filter="lips-glitter">
                 <div class="filter-icon">💄</div>
                 <div class="filter-name">Glitter</div>
-            </div>
-            <div class="filter-option" data-filter="crown">
-                <div class="filter-icon">👑</div>
-                <div class="filter-name">Corona</div>
-            </div>
-            <div class="filter-option" data-filter="glasses">
-                <div class="filter-icon">😎</div>
-                <div class="filter-name">Lentes</div>
-            </div>
-            <div class="filter-option" data-filter="butterfly">
-                <div class="filter-icon">🦋</div>
-                <div class="filter-name">Mariposa</div>
             </div>
             <div class="filter-option" data-filter="heart">
                 <div class="filter-icon">💕</div>
@@ -415,6 +403,25 @@
         let faceLandmarks = null;
         let currentCamera = 'user'; // 'user' = frontal, 'environment' = trasera
         let camera = null;
+
+        // Cargar imagen personalizada de labios
+        let labiosCustomImage = null;
+
+        function loadCustomImages() {
+            labiosCustomImage = new Image();
+            labiosCustomImage.src = 'labios.png'; // Asegurate de tener este archivo en GitHub
+            
+            labiosCustomImage.onload = () => {
+                console.log('✓ Imagen de labios personalizados cargada correctamente');
+            };
+            
+            labiosCustomImage.onerror = () => {
+                console.error('✗ Error: No se pudo cargar labios.png - Verificá que el archivo esté en GitHub');
+            };
+        }
+
+        // Cargar imágenes al inicio
+        loadCustomImages();
 
         // Configurar canvas responsive
         function setupCanvas() {
@@ -473,20 +480,13 @@
         // Aplicar filtro
         function applyFilter(landmarks) {
             switch(currentFilter) {
-                case 'lips-red':
-                    drawLips(landmarks, '#DC143C', 0.6);
+                case 'labios-custom':
+                    if (labiosCustomImage && labiosCustomImage.complete) {
+                        drawLabiosCustom(landmarks, labiosCustomImage);
+                    }
                     break;
                 case 'lips-glitter':
                     drawLipsGlitter(landmarks);
-                    break;
-                case 'crown':
-                    drawCrown(landmarks);
-                    break;
-                case 'glasses':
-                    drawGlasses(landmarks);
-                    break;
-                case 'butterfly':
-                    drawButterfly(landmarks);
                     break;
                 case 'heart':
                     drawHeartCheeks(landmarks);
@@ -533,135 +533,6 @@
             });
         }
 
-        // Corona
-        function drawCrown(landmarks) {
-            const forehead = landmarks[10];
-            const leftSide = landmarks[234];
-            const rightSide = landmarks[454];
-            
-            const centerX = forehead.x * canvasElement.width;
-            const centerY = forehead.y * canvasElement.height - 80;
-            const width = Math.abs(rightSide.x - leftSide.x) * canvasElement.width * 0.8;
-            
-            // Corona dorada
-            canvasCtx.fillStyle = '#FFD700';
-            canvasCtx.strokeStyle = '#FFA500';
-            canvasCtx.lineWidth = 3;
-            
-            // Puntas de la corona
-            canvasCtx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const angle = (Math.PI / 4) * i - Math.PI / 2;
-                const x = centerX + Math.cos(angle) * width / 2;
-                const y = centerY + Math.sin(angle) * 40;
-                i === 0 ? canvasCtx.moveTo(x, y + 20) : canvasCtx.lineTo(x, y);
-                canvasCtx.lineTo(x, y + 20);
-            }
-            canvasCtx.closePath();
-            canvasCtx.fill();
-            canvasCtx.stroke();
-            
-            // Joyas
-            for (let i = 0; i < 5; i++) {
-                const angle = (Math.PI / 4) * i - Math.PI / 2;
-                const x = centerX + Math.cos(angle) * width / 2;
-                const y = centerY + Math.sin(angle) * 40;
-                canvasCtx.fillStyle = i % 2 === 0 ? '#FF0080' : '#00BFFF';
-                canvasCtx.beginPath();
-                canvasCtx.arc(x, y, 5, 0, Math.PI * 2);
-                canvasCtx.fill();
-            }
-        }
-
-        // Lentes de sol
-        function drawGlasses(landmarks) {
-            const leftEye = landmarks[159];
-            const rightEye = landmarks[386];
-            const nose = landmarks[168];
-            
-            const eyeDistance = Math.abs(rightEye.x - leftEye.x) * canvasElement.width;
-            const lensRadius = eyeDistance * 0.25;
-            
-            // Lente izquierdo
-            drawLens(leftEye, lensRadius);
-            // Lente derecho
-            drawLens(rightEye, lensRadius);
-            
-            // Puente
-            canvasCtx.strokeStyle = '#000';
-            canvasCtx.lineWidth = 4;
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(leftEye.x * canvasElement.width + lensRadius, leftEye.y * canvasElement.height);
-            canvasCtx.lineTo(rightEye.x * canvasElement.width - lensRadius, rightEye.y * canvasElement.height);
-            canvasCtx.stroke();
-        }
-
-        function drawLens(eye, radius) {
-            const x = eye.x * canvasElement.width;
-            const y = eye.y * canvasElement.height;
-            
-            // Lente oscuro
-            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            canvasCtx.beginPath();
-            canvasCtx.arc(x, y, radius, 0, Math.PI * 2);
-            canvasCtx.fill();
-            
-            // Marco
-            canvasCtx.strokeStyle = '#000';
-            canvasCtx.lineWidth = 4;
-            canvasCtx.stroke();
-            
-            // Reflejo
-            canvasCtx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            canvasCtx.beginPath();
-            canvasCtx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
-            canvasCtx.fill();
-        }
-
-        // Mariposa
-        function drawButterfly(landmarks) {
-            const nose = landmarks[4];
-            const x = nose.x * canvasElement.width;
-            const y = nose.y * canvasElement.height - 100;
-            
-            canvasCtx.save();
-            canvasCtx.translate(x, y);
-            
-            // Alas
-            const gradient = canvasCtx.createLinearGradient(-50, 0, 50, 0);
-            gradient.addColorStop(0, '#FF1493');
-            gradient.addColorStop(0.5, '#9400D3');
-            gradient.addColorStop(1, '#FF1493');
-            
-            canvasCtx.fillStyle = gradient;
-            
-            // Ala izquierda
-            canvasCtx.beginPath();
-            canvasCtx.ellipse(-30, 0, 35, 45, -Math.PI / 6, 0, Math.PI * 2);
-            canvasCtx.fill();
-            
-            // Ala derecha
-            canvasCtx.beginPath();
-            canvasCtx.ellipse(30, 0, 35, 45, Math.PI / 6, 0, Math.PI * 2);
-            canvasCtx.fill();
-            
-            // Cuerpo
-            canvasCtx.fillStyle = '#000';
-            canvasCtx.fillRect(-3, -20, 6, 40);
-            
-            // Antenas
-            canvasCtx.strokeStyle = '#000';
-            canvasCtx.lineWidth = 2;
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(0, -20);
-            canvasCtx.quadraticCurveTo(-10, -35, -15, -40);
-            canvasCtx.moveTo(0, -20);
-            canvasCtx.quadraticCurveTo(10, -35, 15, -40);
-            canvasCtx.stroke();
-            
-            canvasCtx.restore();
-        }
-
         // Corazones en mejillas
         function drawHeartCheeks(landmarks) {
             const leftCheek = landmarks[50];
@@ -680,6 +551,43 @@
             canvasCtx.bezierCurveTo(-size / 2, -size / 4, -size, size / 8, 0, size);
             canvasCtx.bezierCurveTo(size, size / 8, size / 2, -size / 4, 0, size / 4);
             canvasCtx.fill();
+            canvasCtx.restore();
+        }
+
+        // Filtro: Labios Personalizados (Imagen PNG)
+        function drawLabiosCustom(landmarks, image) {
+            if (!image || !image.complete) return;
+            
+            // 1. Obtener puntos clave de la boca
+            const upperLip = landmarks[13];   // Centro superior de la boca
+            const lowerLip = landmarks[14];   // Centro inferior de la boca
+            const leftMouth = landmarks[61];  // Esquina izquierda
+            const rightMouth = landmarks[291]; // Esquina derecha
+            
+            // 2. Calcular dimensiones de la boca
+            const mouthWidth = Math.abs(rightMouth.x - leftMouth.x) * canvasElement.width;
+            const mouthHeight = Math.abs(lowerLip.y - upperLip.y) * canvasElement.height;
+            
+            // 3. Calcular centro de la boca
+            const centerX = ((leftMouth.x + rightMouth.x) / 2) * canvasElement.width;
+            const centerY = ((upperLip.y + lowerLip.y) / 2) * canvasElement.height;
+            
+            // 4. Calcular tamaño de la imagen (1.8x más grande que la boca real)
+            const imageWidth = mouthWidth * 1.8;
+            const imageHeight = mouthHeight * 1.8;
+            
+            // 5. Dibujar la imagen
+            canvasCtx.save();
+            canvasCtx.globalAlpha = 0.9; // Opacidad 90%
+            
+            canvasCtx.drawImage(
+                image,
+                centerX - imageWidth / 2,   // Posición X (centrada)
+                centerY - imageHeight / 2,  // Posición Y (centrada)
+                imageWidth,                 // Ancho escalado
+                imageHeight                 // Alto escalado
+            );
+            
             canvasCtx.restore();
         }
 
@@ -766,5 +674,3 @@
     </script>
 </body>
 </html>
-
-
