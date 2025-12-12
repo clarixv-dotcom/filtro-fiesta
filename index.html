@@ -571,7 +571,7 @@
             const mouthOpenHeight = Math.abs(lowerLip.y - upperLip.y) * canvasElement.height;
             
             // 4. Establecer altura mínima (AUMENTADA para que se vea bien con boca cerrada)
-            const minHeight = mouthWidth * 0.65;  // Altura mínima = 65% del ancho (era 0.3)
+            const minHeight = mouthWidth * 1.3;  // Altura mínima = 130% del ancho (el doble de antes)
             const actualHeight = Math.max(mouthOpenHeight * 2.5, minHeight); // Amplificar movimiento
             
             // 5. Calcular centro de la boca
