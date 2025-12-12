@@ -559,22 +559,21 @@
             if (!image || !image.complete) return;
             
             // 1. Obtener puntos clave de la boca
-            const upperLip = landmarks[13];   // Centro superior de la boca
-            const lowerLip = landmarks[14];   // Centro inferior de la boca
-            const leftMouth = landmarks[61];  // Esquina izquierda
+            const leftMouth = landmarks[61];   // Esquina izquierda
             const rightMouth = landmarks[291]; // Esquina derecha
+            const upperLip = landmarks[0];     // Centro superior (más estable)
+            const lowerLip = landmarks[17];    // Centro inferior (más estable)
             
-            // 2. Calcular dimensiones de la boca
+            // 2. Calcular ANCHO de la boca (esto no cambia al abrir/cerrar)
             const mouthWidth = Math.abs(rightMouth.x - leftMouth.x) * canvasElement.width;
-            const mouthHeight = Math.abs(lowerLip.y - upperLip.y) * canvasElement.height;
             
             // 3. Calcular centro de la boca
             const centerX = ((leftMouth.x + rightMouth.x) / 2) * canvasElement.width;
             const centerY = ((upperLip.y + lowerLip.y) / 2) * canvasElement.height;
             
-            // 4. Calcular tamaño de la imagen (1.8x más grande que la boca real)
-            const imageWidth = mouthWidth * 1.8;
-            const imageHeight = mouthHeight * 1.8;
+            // 4. Calcular tamaño de la imagen basado SOLO en el ancho
+            const imageWidth = mouthWidth * 1.8;  // 1.8x más ancho que la boca
+            const imageHeight = imageWidth * 0.6; // Altura proporcional (60% del ancho)
             
             // 5. Dibujar la imagen
             canvasCtx.save();
