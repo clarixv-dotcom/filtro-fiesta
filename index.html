@@ -1,63 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Librería MindAR (Face Tracking) -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Face Filter - Mis 15</title>
   <style>
-    body { margin: 0; overflow: hidden; }
-    /* Estilo del botón de foto */
-    #capture {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      width: 80px; height: 80px; background: white; border-radius: 50%; border: 4px solid #ccc; z-index: 10; cursor: pointer;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body { overflow: hidden; background: black; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #info { 
+      position: fixed; 
+      bottom: 20px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      background: rgba(255,255,255,0.9); 
+      padding: 15px 30px; 
+      border-radius: 25px; 
+      font-size: 14px;
+      z-index: 100;
     }
-    #capture:active { background: #ddd; }
   </style>
 </head>
 <body>
-  <div id="capture"></div> <!-- Botón de foto -->
-  
-  <a-scene mindar-face embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-    <a-assets>
-      <!-- CAMBIA 'corona.png' POR EL NOMBRE DE TU ARCHIVO -->
-      <a-asset-item id="headModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/face-tracking/assets/sparkar/headOccluder.glb"></a-asset-item>
-            <img id="mi-filtro" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/1024px-Camponotus_flavomarginatus_ant.jpg">
-          </a-assets>
+  anvas id="canvas"></canvas>
+  <div id="info">Cargando...</div>
 
-    <a-camera active="false" position="0 0 0"></a-camera>
-
-    <!-- Configuración del filtro en la cara -->
-    <!-- anchorIndex 168 = Frente/Cabeza (Ideal para coronas) -->
-    <!-- anchorIndex 1 = Nariz (Ideal para gafas o máscaras) -->
-    <a-entity mindar-face-target="anchorIndex: 168">
-      <a-image src="#mi-filtro" position="0 0.1 0" scale="0.5 0.5 0.5"></a-image> <!-- Ajusta scale para tamaño -->
-    </a-entity>
-  </a-scene>
-
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face.prod.js"></script>
   <script>
-    // Lógica para tomar la foto
-    document.getElementById("capture").addEventListener("click", function() {
-      const scene = document.querySelector("a-scene");
-      const video = document.querySelector("video");
-      const canvas = document.createElement("canvas");
-      
-      // Ajustar tamaño del canvas al video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
+    (async function() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const info = document.getElementById('info');
 
-      // Dibujar video de cámara
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Dibujar elementos 3D (el filtro) encima
-      // Nota: Esta es una captura básica. Para captura HD perfecta con WebGL se requiere un script más largo.
-      // Solución simple: Tomar screenshot nativo del navegador o usar librería html2canvas
-      
-      // Opción más simple para usuario: Ocultar interfaz y pedir que haga Screenshot manual
-      alert("¡Sonríe! Haz una captura de pantalla ahora.");
-    });
+      try {
+        const mindarFace = new window.MINDAR.FACE.MindARFace();
+        await mindarFace.setupCamera();
+        
+        canvas.width = mindarFace.width;
+        canvas.height = mindarFace.height;
+        
+        await mindarFace.start();
+        info.innerHTML = '✓ Filtro activo<br>Haz Screenshot para guardar';
+
+        function render() {
+          const imageData = mindarFace.getVideoData();
+          ctx.putImageData(imageData, 0, 0);
+
+          const faces = mindarFace.estimateFaces();
+          
+          // Dibuja un círculo verde alrededor de la cara
+          if (faces.length > 0) {
+            const face = faces[0];
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(face.position[0], face.position[1], 80, 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+
+          requestAnimationFrame(render);
+        }
+
+        render();
+      } catch (err) {
+        info.innerHTML = '❌ Error: ' + err.message;
+        console.error(err);
+      }
+    })();
   </script>
 </body>
 </html>
-
