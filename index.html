@@ -554,28 +554,35 @@
             canvasCtx.restore();
         }
 
-        // Filtro: Labios Personalizados (Imagen PNG)
+        // Filtro: Labios Personalizados (Imagen PNG) - DINÁMICO
         function drawLabiosCustom(landmarks, image) {
             if (!image || !image.complete) return;
             
             // 1. Obtener puntos clave de la boca
             const leftMouth = landmarks[61];   // Esquina izquierda
             const rightMouth = landmarks[291]; // Esquina derecha
-            const upperLip = landmarks[0];     // Centro superior (más estable)
-            const lowerLip = landmarks[17];    // Centro inferior (más estable)
+            const upperLip = landmarks[13];    // Centro superior (se mueve al abrir boca)
+            const lowerLip = landmarks[14];    // Centro inferior (se mueve al abrir boca)
             
-            // 2. Calcular ANCHO de la boca (esto no cambia al abrir/cerrar)
+            // 2. Calcular ANCHO de la boca (base estable)
             const mouthWidth = Math.abs(rightMouth.x - leftMouth.x) * canvasElement.width;
             
-            // 3. Calcular centro de la boca
+            // 3. Calcular ALTURA REAL de apertura de la boca
+            const mouthOpenHeight = Math.abs(lowerLip.y - upperLip.y) * canvasElement.height;
+            
+            // 4. Establecer altura mínima (para que no desaparezca con boca cerrada)
+            const minHeight = mouthWidth * 0.3;  // Altura mínima = 30% del ancho
+            const actualHeight = Math.max(mouthOpenHeight * 2.5, minHeight); // Amplificar movimiento
+            
+            // 5. Calcular centro de la boca
             const centerX = ((leftMouth.x + rightMouth.x) / 2) * canvasElement.width;
             const centerY = ((upperLip.y + lowerLip.y) / 2) * canvasElement.height;
             
-            // 4. Calcular tamaño de la imagen basado SOLO en el ancho
-            const imageWidth = mouthWidth * 1.8;  // 1.8x más ancho que la boca
-            const imageHeight = imageWidth * 0.6; // Altura proporcional (60% del ancho)
+            // 6. Calcular tamaño final de la imagen
+            const imageWidth = mouthWidth * 1.8;   // Ancho basado en esquinas
+            const imageHeight = actualHeight;       // Alto dinámico según apertura
             
-            // 5. Dibujar la imagen
+            // 7. Dibujar la imagen (se estira/comprime con la boca)
             canvasCtx.save();
             canvasCtx.globalAlpha = 0.9; // Opacidad 90%
             
@@ -583,8 +590,8 @@
                 image,
                 centerX - imageWidth / 2,   // Posición X (centrada)
                 centerY - imageHeight / 2,  // Posición Y (centrada)
-                imageWidth,                 // Ancho escalado
-                imageHeight                 // Alto escalado
+                imageWidth,                 // Ancho fijo
+                imageHeight                 // Alto DINÁMICO ← Cambia con la boca!
             );
             
             canvasCtx.restore();
