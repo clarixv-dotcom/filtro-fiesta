@@ -570,13 +570,13 @@
             // 3. Calcular ALTURA REAL de apertura de la boca
             const mouthOpenHeight = Math.abs(lowerLip.y - upperLip.y) * canvasElement.height;
             
-            // 4. Establecer altura mínima (120% más alta)
-            const minHeight = mouthWidth * 1.248;  // Altura mínima aumentada 120%
-            const actualHeight = Math.max(mouthOpenHeight * 3.0, minHeight); // Movimiento también 120% más
+            // 4. Establecer altura mínima (10% reducción)
+            const minHeight = mouthWidth * 1.1232;  // Altura reducida 10%
+            const actualHeight = Math.max(mouthOpenHeight * 2.7, minHeight); // Movimiento también 10% menos
             
-            // 5. Calcular centro de la boca
+            // 5. Calcular centro de la boca (movido un poco hacia abajo)
             const centerX = ((leftMouth.x + rightMouth.x) / 2) * canvasElement.width;
-            const centerY = ((upperLip.y + lowerLip.y) / 2) * canvasElement.height;
+            const centerY = ((upperLip.y + lowerLip.y) / 2) * canvasElement.height + (mouthWidth * 0.08); // Offset hacia abajo
             
             // 6. Calcular tamaño final de la imagen (ancho 80% del anterior)
             const imageWidth = mouthWidth * 1.584;  // Ancho reducido a 80%
