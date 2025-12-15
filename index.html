@@ -582,16 +582,23 @@
             const imageWidth = mouthWidth * 1.6632;  // Ancho aumentado 5%
             const imageHeight = actualHeight;       // Alto dinámico según apertura
             
-            // 7. Dibujar la imagen (se estira/comprime con la boca)
+            // 7. Dibujar la imagen con rotación (5 grados a la derecha)
             canvasCtx.save();
             canvasCtx.globalAlpha = 0.9; // Opacidad 90%
             
+            // Trasladar al centro de la imagen
+            canvasCtx.translate(centerX, centerY);
+            
+            // Rotar 5 grados (a la derecha = positivo)
+            canvasCtx.rotate(5 * Math.PI / 180);  // Convertir grados a radianes
+            
+            // Dibujar la imagen centrada
             canvasCtx.drawImage(
                 image,
-                centerX - imageWidth / 2,   // Posición X (centrada)
-                centerY - imageHeight / 2,  // Posición Y (centrada)
-                imageWidth,                 // Ancho fijo
-                imageHeight                 // Alto DINÁMICO ← Cambia con la boca!
+                -imageWidth / 2,    // X relativo al centro
+                -imageHeight / 2,   // Y relativo al centro
+                imageWidth,         // Ancho fijo
+                imageHeight         // Alto DINÁMICO ← Cambia con la boca!
             );
             
             canvasCtx.restore();
